@@ -119,13 +119,13 @@ export const CreateBranchAndWorktreeRow: React.FC = () => {
 
   return (
     <SettingRow
-      title="Create branch and worktree by default"
-      description="Start new From Branch tasks in a dedicated task branch and worktree unless changed in the task modal."
+      title="Isolate new chats by default"
+      description="Create a dedicated branch and worktree for each new chat instead of working in the project directory."
       control={
         <>
           <ResetToDefaultButton
             visible={taskSettings.isFieldOverridden('createBranchAndWorktree')}
-            defaultLabel="on"
+            defaultLabel="off"
             onReset={taskSettings.resetCreateBranchAndWorktree}
             disabled={taskSettings.loading || taskSettings.saving}
           />

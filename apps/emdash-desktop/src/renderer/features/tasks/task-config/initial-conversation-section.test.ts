@@ -229,10 +229,10 @@ describe('useInitialConversationState', () => {
     expect(latestState?.prompt).toBe('Keep this automation prompt');
   });
 
-  it('defaults chat UI off when the provider supports ACP', async () => {
+  it('defaults chat UI on when the provider supports ACP', async () => {
     await renderProbe('project-1');
 
-    expect(latestState?.useChatUi).toBe(false);
+    expect(latestState?.useChatUi).toBe(true);
   });
 
   it('persists after the user enables chat UI', async () => {

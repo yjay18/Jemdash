@@ -4,6 +4,7 @@ import { disposeAcpRuntimeProcess } from '@main/core/acp/controller';
 import { disposeAgentConfigRuntimeProcess } from '@main/core/agent-config/controller';
 import { agentHookService } from '@main/core/agent-hooks/agent-hook-service';
 import { automationsService } from '@main/core/automations/automations-service';
+import { ollamaService } from '@main/core/ollama/ollama-service';
 import { remoteTmuxReaperService } from '@main/core/pty/remote-tmux-reaper-service';
 import { prSyncScheduler } from '@main/core/pull-requests/pr-sync-scheduler';
 import { stopResourceSampler } from '@main/core/resource-monitor/resource-sampler';
@@ -56,6 +57,7 @@ export async function runQuitCleanup(): Promise<void> {
     ['runtimeManager.dispose', () => runtimeManager.dispose()],
     ['disposeAcpRuntimeProcess', () => disposeAcpRuntimeProcess()],
     ['disposeAgentConfigRuntimeProcess', () => disposeAgentConfigRuntimeProcess()],
+    ['ollamaService.dispose', () => ollamaService.dispose()],
     ['appScope.dispose', () => appScope.dispose()],
     ['telemetryService.dispose', () => telemetryService.dispose()],
   ];

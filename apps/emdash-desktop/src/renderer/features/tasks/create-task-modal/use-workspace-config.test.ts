@@ -32,7 +32,13 @@ const { useWorkspaceConfig } = await import('./use-workspace-config');
 
 let latestState: WorkspaceConfigState | undefined;
 
-function Probe({ initial }: { initial: Parameters<typeof useWorkspaceConfig>[0]['initial'] }) {
+function Probe({
+  initial,
+  createBranchAndWorktreeDefault = true,
+}: {
+  initial: Parameters<typeof useWorkspaceConfig>[0]['initial'];
+  createBranchAndWorktreeDefault?: boolean;
+}) {
   latestState = useWorkspaceConfig({
     projectId: 'project-1',
     defaultBranch: { type: 'local', branch: 'main' },
@@ -42,7 +48,7 @@ function Probe({ initial }: { initial: Parameters<typeof useWorkspaceConfig>[0][
     pr: null,
     taskName: 'Generated task branch',
     linkedIssue: null,
-    createBranchAndWorktreeDefault: true,
+    createBranchAndWorktreeDefault,
     resetKey: 'project-1',
     initial,
   });
@@ -71,11 +77,27 @@ describe('useWorkspaceConfig branch selection', () => {
     dom.window.close();
   });
 
-  async function renderProbe(initial: Parameters<typeof useWorkspaceConfig>[0]['initial']) {
+  async function renderProbe(
+    initial: Parameters<typeof useWorkspaceConfig>[0]['initial'],
+    createBranchAndWorktreeDefault = true
+  ) {
     await act(async () => {
-      root.render(React.createElement(Probe, { initial }));
+      root.render(React.createElement(Probe, { initial, createBranchAndWorktreeDefault }));
     });
   }
+
+  it('uses the repository directory when chat-first mode is the default', async () => {
+    await renderProbe(undefined, false);
+
+    expect(latestState?.presetId).toBe('repo-root');
+    expect(latestState?.resolvedConfig).toEqual({
+      version: '2',
+      git: { kind: 'none' },
+      workspace: { kind: 'repository-instance', workspaceId: 'repo-workspace-1' },
+    });
+    expect(latestState?.setupSteps).toEqual([]);
+    expect(latestState?.isValid).toBe(true);
+  });
 
   it('uses the current branch when checkout mode is selected without an explicit branch', async () => {
     await renderProbe(undefined);

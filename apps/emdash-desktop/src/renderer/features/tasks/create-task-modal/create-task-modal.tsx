@@ -118,19 +118,10 @@ export const CreateTaskModal = observer(function CreateTaskModal({
   return (
     <>
       <DialogHeader className="flex items-center gap-2">
-        <DialogTitle>Create Task</DialogTitle>
+        <DialogTitle>New Chat</DialogTitle>
       </DialogHeader>
       <DialogContentArea>
         <div className="flex w-full flex-col gap-5">
-          <TaskNameField state={state.taskName} />
-          <LinkedEntitySection
-            state={state}
-            hasAnyIssueIntegration={hasAnyIssueIntegration}
-            hasPrSupport={hasPrSupport}
-            projectId={selectedProjectId}
-            repositoryUrl={repositoryUrl}
-            projectPath={projectPath}
-          />
           <TaskStateProvider
             workspaceConfig={state.workspaceConfig}
             initialConversation={initialConversation}
@@ -147,17 +138,26 @@ export const CreateTaskModal = observer(function CreateTaskModal({
               tabs={[
                 {
                   value: 'conversation',
-                  label: 'Initial Conversation',
+                  label: 'Chat',
                   content: <ConversationField />,
                 },
                 {
                   value: 'workspace',
-                  label: 'Workspace Settings',
+                  label: 'Workspace (optional)',
                   content: <WorkspaceSettingsSection defaultOpen={false} />,
                 },
               ]}
             />
           </TaskStateProvider>
+          <TaskNameField state={state.taskName} />
+          <LinkedEntitySection
+            state={state}
+            hasAnyIssueIntegration={hasAnyIssueIntegration}
+            hasPrSupport={hasPrSupport}
+            projectId={selectedProjectId}
+            repositoryUrl={repositoryUrl}
+            projectPath={projectPath}
+          />
         </div>
       </DialogContentArea>
       <DialogFooter>
@@ -166,7 +166,7 @@ export const CreateTaskModal = observer(function CreateTaskModal({
           onClick={handleCreateTask}
           disabled={!canCreate || initialConversation.issueContextEditorOpen}
         >
-          Create
+          Start chat
         </ConfirmButton>
       </DialogFooter>
     </>

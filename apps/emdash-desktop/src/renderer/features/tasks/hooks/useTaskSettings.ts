@@ -50,7 +50,7 @@ export function useTaskSettings(): TaskSettingsModel {
     autoGenerateName: tasks?.autoGenerateName ?? false,
     autoApproveByDefault: tasks?.autoApproveByDefault ?? false,
     autoTrustWorktrees: tasks?.autoTrustWorktrees ?? false,
-    createBranchAndWorktree: tasks?.createBranchAndWorktree ?? true,
+    createBranchAndWorktree: tasks?.createBranchAndWorktree ?? false,
     deleteBranchByDefault: tasks?.deleteBranchByDefault ?? false,
     preserveNameCapitalization: tasks?.preserveNameCapitalization ?? false,
     includeIssueContextByDefault: tasks?.includeIssueContextByDefault ?? true,

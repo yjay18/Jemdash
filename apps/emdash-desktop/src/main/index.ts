@@ -28,6 +28,7 @@ import { localDependencyManager } from './core/dependencies/dependency-managers'
 import { editorBufferService } from './core/editor/editor-buffer-service';
 import { githubAccountReconciliationService } from './core/github/accounts/github-account-reconciliation-instance';
 import { GitHubAuthServerAdapter } from './core/github/accounts/github-auth-server-adapter';
+import { ollamaService } from './core/ollama/ollama-service';
 import { projectSettingsService } from './core/projects/settings/project-settings-service';
 import { promptLibraryService } from './core/prompt-library/service';
 import { providerAccountRegistry } from './core/provider-accounts/provider-account-registry-instance';
@@ -106,6 +107,7 @@ app.on('activate', () => {
 
 void app.whenReady().then(async () => {
   await resolveUserEnv();
+  ollamaService.initialize();
 
   try {
     await initializeDatabase();

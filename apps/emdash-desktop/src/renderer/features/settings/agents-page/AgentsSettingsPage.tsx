@@ -6,6 +6,7 @@ import { Button } from '@renderer/lib/ui/button';
 import { SearchInput } from '@renderer/lib/ui/search-input';
 import { ToggleGroup, ToggleGroupItem } from '@renderer/lib/ui/toggle-group';
 import { CliAgentsList, type AgentFilter } from './CliAgentsList';
+import { OllamaRuntimeCard } from './OllamaRuntimeCard';
 
 export function AgentsSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +57,7 @@ export function AgentsSettingsPage() {
         </div>
       </PageHeader>
       <div className="flex flex-col gap-3">
+        <OllamaRuntimeCard />
         <CliAgentsList searchQuery={searchQuery} filter={filter} onFilterChange={setFilter} />
       </div>
     </>

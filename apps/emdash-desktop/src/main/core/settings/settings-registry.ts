@@ -29,7 +29,7 @@ export const SETTINGS_DEFAULTS = {
     autoGenerateName: true,
     autoApproveByDefault: false,
     autoTrustWorktrees: true,
-    createBranchAndWorktree: true,
+    createBranchAndWorktree: false,
     deleteBranchByDefault: false,
     preserveNameCapitalization: false,
     includeIssueContextByDefault: true,

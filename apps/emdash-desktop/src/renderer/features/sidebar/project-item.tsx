@@ -191,7 +191,7 @@ export const SidebarProjectItem = observer(function SidebarProjectItem({
               render={
                 <SidebarItemMiniButton
                   type="button"
-                  aria-label={`New task for ${projectLabel}`}
+                  aria-label={`New chat for ${projectLabel}`}
                   className={
                     'opacity-0 transition-opacity duration-150 group-hover/row:opacity-100'
                   }
@@ -207,7 +207,7 @@ export const SidebarProjectItem = observer(function SidebarProjectItem({
               }
             />
             <TooltipContent>
-              New Task
+              New Chat
               <BoundShortcut settingsKey="newTask" variant="keycaps" />
             </TooltipContent>
           </Tooltip>

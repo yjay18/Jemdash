@@ -1,4 +1,4 @@
-import { CircleDot, GitBranch, GitPullRequest, type LucideIcon } from 'lucide-react';
+import { CircleDot, GitPullRequest, MessageSquare, type LucideIcon } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useConnectedIssueProviders } from '@renderer/features/integrations/use-connected-issue-providers';
 import { getGitRepositoryStore } from '@renderer/features/projects/stores/project-selectors';
@@ -36,14 +36,14 @@ export const TaskListEmptyState = observer(function TaskListEmptyState({
 
   const actions: TaskAction[] = [
     {
-      label: 'Create a Task from a Branch',
-      description: 'Create a task from an existing branch',
-      icon: GitBranch,
+      label: 'Start a Chat',
+      description: 'Chat in this project directory',
+      icon: MessageSquare,
       disabled: false,
       onActivate: () => showTaskModal({ projectId, strategy: 'from-branch' }),
     },
     {
-      label: 'Create from Issue',
+      label: 'Start from Issue',
       description: hasAnyIntegration
         ? 'Link and create a task from an issue'
         : 'Configure issue integrations',
@@ -55,7 +55,7 @@ export const TaskListEmptyState = observer(function TaskListEmptyState({
           : navigate('settings', { tab: 'integrations' }),
     },
     {
-      label: 'Create from Pull Request',
+      label: 'Start from Pull Request',
       description: 'Create a task from a pull request',
       icon: GitPullRequest,
       disabled: !supportsPullRequests,

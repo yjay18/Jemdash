@@ -15,6 +15,7 @@ import { githubController } from './core/github/controller';
 import { integrationsController } from './core/integrations/controller';
 import { issueController } from './core/issues/controller';
 import { mcpController } from './core/mcp/controller';
+import { ollamaController } from './core/ollama/controller';
 import { previewServersController } from './core/preview-servers/controller';
 import { projectSetupController } from './core/project-setup/controller';
 import { projectController } from './core/projects/controller';
@@ -64,6 +65,7 @@ export const rpcRouter = createRPCRouter({
   conversations: conversationController,
   terminals: terminalsController,
   mcp: mcpController,
+  ollama: ollamaController,
   telemetry: telemetryController,
   pullRequests: pullRequestController,
   viewState: viewStateController,

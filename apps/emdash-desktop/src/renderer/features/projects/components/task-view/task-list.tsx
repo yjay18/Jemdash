@@ -233,7 +233,7 @@ export const TaskList = observer(function TaskList() {
               className="flex-1"
             />
             <Button onClick={() => showCreateTaskModal({ projectId })}>
-              Create Task <BoundShortcut settingsKey="newTask" variant="keycaps" />
+              New Chat <BoundShortcut settingsKey="newTask" variant="keycaps" />
             </Button>
           </div>
         </div>

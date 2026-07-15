@@ -140,15 +140,25 @@ export function useWorkspaceConfig(opts: {
     pr,
     taskName,
     linkedIssue,
-    createBranchAndWorktreeDefault = true,
+    createBranchAndWorktreeDefault = false,
     resetKey,
     initial,
   } = opts;
 
   const hasPR = !!pr;
-  const [mode, setModeRaw] = useState<WorkspaceMode>(initial?.mode ?? 'new-worktree');
+  const defaultMode: WorkspaceMode =
+    hasPR || createBranchAndWorktreeDefault ? 'new-worktree' : 'existing';
+  const defaultPreset: WorkspacePresetId = hasPR
+    ? 'checkout-pr'
+    : createBranchAndWorktreeDefault
+      ? 'new-worktree'
+      : 'repo-root';
+  const initialMode = initial?.mode ?? defaultMode;
+  const [mode, setModeRaw] = useState<WorkspaceMode>(initialMode);
   const [presetId, setPresetIdRaw] = useState<WorkspacePresetId>(
-    () => initial?.presetId ?? defaultPresetForMode(initial?.mode ?? 'new-worktree', hasPR)
+    () =>
+      initial?.presetId ??
+      (initial?.mode ? defaultPresetForMode(initial.mode, hasPR) : defaultPreset)
   );
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     initial?.selectedWorkspaceId ?? null
@@ -158,8 +168,20 @@ export function useWorkspaceConfig(opts: {
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
   if (resetKey !== prevResetKey) {
     setPrevResetKey(resetKey);
-    setModeRaw('new-worktree');
-    setPresetIdRaw(defaultPresetForMode('new-worktree', hasPR));
+    setModeRaw(defaultMode);
+    setPresetIdRaw(defaultPreset);
+    setSelectedWorkspaceId(null);
+  }
+
+  // Settings hydrate asynchronously. Apply the resolved default once it arrives,
+  // without disturbing explicit automation/restoration state.
+  const [prevCreateBranchDefault, setPrevCreateBranchDefault] = useState(
+    createBranchAndWorktreeDefault
+  );
+  if (createBranchAndWorktreeDefault !== prevCreateBranchDefault && !initial && !hasPR) {
+    setPrevCreateBranchDefault(createBranchAndWorktreeDefault);
+    setModeRaw(defaultMode);
+    setPresetIdRaw(defaultPreset);
     setSelectedWorkspaceId(null);
   }
 
@@ -197,7 +219,7 @@ export function useWorkspaceConfig(opts: {
     currentBranch,
     isUnborn,
     initial?.branchSelection,
-    createBranchAndWorktreeDefault
+    true
   );
 
   const branchNameState = useBranchName({

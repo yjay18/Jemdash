@@ -48,7 +48,7 @@ export const CreateConversationModal = observer(function CreateConversationModal
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [useChatUiPreference, setUseChatUiPreference] = useLocalStorage(
     'initial-conversation:chat-ui-enabled',
-    false
+    true
   );
   useCloseGuard(isSubmitting);
 
@@ -122,7 +122,7 @@ export const CreateConversationModal = observer(function CreateConversationModal
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Create Conversation</DialogTitle>
+        <DialogTitle>New Chat</DialogTitle>
       </DialogHeader>
       <DialogContentArea>
         <FieldGroup>
@@ -176,7 +176,7 @@ export const CreateConversationModal = observer(function CreateConversationModal
             <Field>
               <div className="flex items-center gap-2">
                 <Switch checked={useAcp} onCheckedChange={setUseChatUiPreference} />
-                <FieldLabel>Use chat UI</FieldLabel>
+                <FieldLabel>Chat interface</FieldLabel>
               </div>
             </Field>
           ) : null}
@@ -188,7 +188,7 @@ export const CreateConversationModal = observer(function CreateConversationModal
           onClick={() => void handleCreateConversation()}
           disabled={createDisabled || isSubmitting}
         >
-          {isSubmitting ? 'Creating...' : 'Create'}
+          {isSubmitting ? 'Starting...' : 'Start chat'}
         </ConfirmButton>
       </DialogFooter>
     </>

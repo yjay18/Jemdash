@@ -4,18 +4,19 @@ import { type TaskNameState } from './use-task-name';
 
 interface TaskNameFieldProps {
   state: TaskNameState;
+  autoFocus?: boolean;
 }
 
-export function TaskNameField({ state }: TaskNameFieldProps) {
+export function TaskNameField({ state, autoFocus = false }: TaskNameFieldProps) {
   const { taskName, placeholder, handleTaskNameChange, showSlugHint } = state;
 
   return (
     <Field className="flex flex-col gap-1">
-      <FieldLabel>Task name</FieldLabel>
+      <FieldLabel>Chat name</FieldLabel>
       <EditableNameField
-        autoFocus
+        autoFocus={autoFocus}
         value={taskName}
-        placeholder={placeholder || 'Task name...'}
+        placeholder={placeholder || 'Chat name...'}
         onChange={handleTaskNameChange}
       />
       {showSlugHint && (
