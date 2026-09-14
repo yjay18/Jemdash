@@ -692,9 +692,10 @@ export function ChatComposer({
       : null;
   const selectedAgentTitle = selectedAgentItem
     ? agentLocked
-      ? `${selectedAgentItem.name} — agents can't be switched after a conversation starts`
+      ? `${selectedAgentItem.name} — provider switching is unavailable while this chat is busy`
       : selectedAgentItem.name
     : undefined;
+  const canSelectAgentFromModel = !!agentOptions && agentOptions.length > 1;
 
   // ── Effort items ─────────────────────────────────────────────────────────────
 
@@ -909,31 +910,72 @@ export function ChatComposer({
                 detailSide="right"
                 detailAlign="start"
                 renderFooter={
-                  effortItems.length > 0
+                  canSelectAgentFromModel || effortItems.length > 0
                     ? () => (
-                        <DropdownMenu.Root>
-                          <DropdownMenu.Trigger className={styles.effortRow}>
-                            <span className={styles.effortRowLabel}>Effort</span>
-                            <span className={styles.effortRowValue}>
-                              {selectedEffortItem?.name ?? 'Default'}
-                              <ChevronRight
-                                style={{ width: '0.75rem', height: '0.75rem', flexShrink: 0 }}
-                              />
-                            </span>
-                          </DropdownMenu.Trigger>
-                          <DropdownMenu.Content side="right" align="start" sideOffset={4}>
-                            <DropdownMenu.RadioGroup
-                              value={selectedEffort}
-                              onValueChange={(v) => onEffortChange?.(String(v))}
-                            >
-                              {effortItems.map((e) => (
-                                <DropdownMenu.RadioItem key={e.id} value={e.id}>
-                                  {e.name}
-                                </DropdownMenu.RadioItem>
-                              ))}
-                            </DropdownMenu.RadioGroup>
-                          </DropdownMenu.Content>
-                        </DropdownMenu.Root>
+                        <>
+                          {canSelectAgentFromModel && (
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger
+                                className={styles.effortRow}
+                                disabled={agentLocked}
+                              >
+                                <span className={styles.effortRowLabel}>Provider</span>
+                                <span className={styles.effortRowValue}>
+                                  {selectedAgentItem?.name ?? 'Select'}
+                                  <ChevronRight
+                                    style={{ width: '0.75rem', height: '0.75rem', flexShrink: 0 }}
+                                  />
+                                </span>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Content side="right" align="start" sideOffset={4}>
+                                <DropdownMenu.RadioGroup
+                                  value={selectedAgent}
+                                  onValueChange={(value) => onAgentChange?.(String(value))}
+                                >
+                                  {agentOptions.map((agent) => (
+                                    <DropdownMenu.RadioItem
+                                      key={agent.id}
+                                      value={agent.id}
+                                      disabled={agent.disabled}
+                                    >
+                                      {agent.icon && (
+                                        <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+                                          {agent.icon}
+                                        </span>
+                                      )}
+                                      {agent.name}
+                                    </DropdownMenu.RadioItem>
+                                  ))}
+                                </DropdownMenu.RadioGroup>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Root>
+                          )}
+                          {effortItems.length > 0 && (
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger className={styles.effortRow}>
+                                <span className={styles.effortRowLabel}>Effort</span>
+                                <span className={styles.effortRowValue}>
+                                  {selectedEffortItem?.name ?? 'Default'}
+                                  <ChevronRight
+                                    style={{ width: '0.75rem', height: '0.75rem', flexShrink: 0 }}
+                                  />
+                                </span>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Content side="right" align="start" sideOffset={4}>
+                                <DropdownMenu.RadioGroup
+                                  value={selectedEffort}
+                                  onValueChange={(value) => onEffortChange?.(String(value))}
+                                >
+                                  {effortItems.map((effort) => (
+                                    <DropdownMenu.RadioItem key={effort.id} value={effort.id}>
+                                      {effort.name}
+                                    </DropdownMenu.RadioItem>
+                                  ))}
+                                </DropdownMenu.RadioGroup>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Root>
+                          )}
+                        </>
                       )
                     : undefined
                 }

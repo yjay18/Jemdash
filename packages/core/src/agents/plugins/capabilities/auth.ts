@@ -8,6 +8,7 @@ const cliLoginMethodSchema = z.object({
   name: z.string(),
   args: z.array(z.string()),
   description: z.string().optional(),
+  supportsAuthorizationCodeInput: z.boolean().optional(),
 });
 
 const apiKeyEnvVarSchema = z.object({

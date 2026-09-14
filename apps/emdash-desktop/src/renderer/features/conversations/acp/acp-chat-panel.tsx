@@ -1,4 +1,5 @@
 import type { AttachmentMimeType, AttachmentRef } from '@emdash/core/acp/client';
+import type { AgentProviderId } from '@emdash/plugins/agents';
 import { ChatComposer, ImageViewerDialog, MermaidViewerDialog } from '@emdash/ui/react/components';
 import type {
   CommandItem,
@@ -48,10 +49,12 @@ import { isHeicLikeFile, isUnstableDropPath } from '@renderer/lib/pty/terminal-i
 import { useAgents } from '@renderer/lib/stores/use-agents';
 import { Button } from '@renderer/lib/ui/button';
 import { log } from '@renderer/utils/logger';
+import { agentSupportsAcp } from '@shared/core/agents/agent-payload';
 import { linkedIssueMentionName, type LinkedIssue } from '@shared/core/linked-issue';
 import type { AcpChatStore, AcpPromptAttachment } from './acp-chat-store';
 import type { AcpChatTabResource } from './acp-chat-tab-resource';
 import { chatViewCommandForShortcut, executeChatViewCommand } from './acp-chat-view-commands';
+import { readProviderSelection } from './acp-provider-handoff';
 import { buildIssueMentionHiddenContext } from './issue-mention-context';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,6 +64,11 @@ const ISSUE_SEARCH_MIN_LENGTH = 2;
 const ISSUE_SEARCH_LIMIT = 20;
 const SLASH_COMMANDS_SECTION = 'Commands';
 const SLASH_PROMPTS_SECTION = 'Prompts';
+const HANDOFF_PROVIDERS = new Set(['claude', 'codex']);
+
+function isHandoffProvider(id: string): id is AgentProviderId {
+  return HANDOFF_PROVIDERS.has(id);
+}
 
 function promptPreview(text: string): string {
   return text.split(/\r?\n/, 1)[0] ?? '';
@@ -233,7 +241,9 @@ const ComposerForStore = observer(function ComposerForStore({
   const editorApiRef = useRef<PromptEditorRef | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const [handoffInProgress, setHandoffInProgress] = useState(false);
   const { value: promptLibrary } = usePromptLibrary();
+  const { pane } = usePaneContext();
 
   // Autofocus when the slot becomes available.
   useEffect(() => {
@@ -527,17 +537,111 @@ const ComposerForStore = observer(function ComposerForStore({
   const { data: agents } = useAgents();
   const agentOptions = useMemo<ComposerAgentOption[]>(
     () =>
-      (agents ?? []).map((a) => ({
-        id: a.id,
-        name: a.name,
-        icon: <AgentIcon id={a.id} size={14} className="rounded-sm" />,
-      })),
+      (agents ?? [])
+        .filter((agent) => isHandoffProvider(agent.id) && agentSupportsAcp(agent.capabilities))
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+          icon: <AgentIcon id={agent.id} size={14} className="rounded-sm" />,
+        })),
     [agents]
   );
 
   const providerId =
     conversationRegistry.get(store.taskId)?.conversations.get(store.conversationId)?.data
       .providerId ?? null;
+  const handleAgentChange = useCallback(
+    async (targetProviderId: string) => {
+      if (
+        !isHandoffProvider(targetProviderId) ||
+        targetProviderId === providerId ||
+        handoffInProgress
+      ) {
+        return;
+      }
+      if (store.affordances.isWorking || store.affordances.hasPendingPermission) {
+        toast({
+          title: 'Finish the current turn first',
+          description: 'Provider handoff is available once the active turn and permissions settle.',
+        });
+        return;
+      }
+      if (store.queuedPrompts.length > 0) {
+        toast({
+          title: 'Queued prompts are still pending',
+          description: 'Send or remove queued prompts before switching providers.',
+        });
+        return;
+      }
+      if (attachments.length > 0) {
+        toast({
+          title: 'Attachments are still staged',
+          description: 'Send or remove attachments before switching providers.',
+        });
+        return;
+      }
+
+      const manager = conversationRegistry.get(store.taskId);
+      const current = manager?.conversations.get(store.conversationId)?.data;
+      if (!manager || !current) {
+        toast({ title: 'Could not find the current chat', variant: 'destructive' });
+        return;
+      }
+
+      setHandoffInProgress(true);
+      try {
+        const handoff = store.prepareHandoff(targetProviderId);
+        const targetAgent = agents?.find((agent) => agent.id === targetProviderId);
+        const targetSelection = readProviderSelection(targetProviderId);
+        const modelOptions =
+          targetAgent?.capabilities.models.kind === 'selectable'
+            ? targetAgent.capabilities.models.modelOptions
+            : null;
+        const model =
+          targetSelection.model && modelOptions?.[targetSelection.model]
+            ? targetSelection.model
+            : undefined;
+        const nextId = crypto.randomUUID();
+        await manager.createConversation({
+          id: nextId,
+          projectId: store.projectId,
+          taskId: store.taskId,
+          provider: targetProviderId,
+          title: current.title,
+          autoApprove: current.autoApprove,
+          model,
+          type: 'acp',
+          handoff,
+        });
+
+        const currentTabId = pane.resolvedTabs.find(
+          (tab) =>
+            tab.kind === 'acp-chat' &&
+            (tab.resource as AcpChatTabResource).store.conversationId === store.conversationId
+        )?.tabId;
+        pane.open('acp-chat', { conversationId: nextId }, { preview: false });
+        if (currentTabId) pane.closeTab(currentTabId);
+        toast({
+          title: `Handed off to ${targetAgent?.name ?? targetProviderId}`,
+          description: 'Your transcript, draft, model preference, and effort preference were kept.',
+        });
+      } catch (error) {
+        log.error('Provider handoff failed', {
+          conversationId: store.conversationId,
+          targetProviderId,
+          error,
+        });
+        toast({
+          title: 'Provider handoff failed',
+          description: error instanceof Error ? error.message : undefined,
+          variant: 'destructive',
+        });
+      } finally {
+        setHandoffInProgress(false);
+      }
+    },
+    [agents, attachments.length, handoffInProgress, pane, providerId, store]
+  );
   const renderMentionIcon = useCallback(({ id, kind }: { id: string; kind: string }) => {
     if (kind !== 'issue') return null;
     const target = parseIssueMentionToken(id);
@@ -608,8 +712,13 @@ const ComposerForStore = observer(function ComposerForStore({
         onPermissionModeChange={handleModeChange}
         agentOptions={agentOptions}
         selectedAgent={providerId ?? undefined}
-        agentLocked
-        onAgentChange={() => {}}
+        agentLocked={
+          handoffInProgress ||
+          a.isWorking ||
+          a.hasPendingPermission ||
+          store.queuedPrompts.length > 0
+        }
+        onAgentChange={(agentId) => void handleAgentChange(agentId)}
         contextUsage={
           store.usage
             ? {
@@ -718,6 +827,7 @@ export const AcpChatPanel = observer(function AcpChatPanel() {
       providerId,
       methodId: cliAuthMethod.id,
       providerName: agent?.name ?? providerId,
+      supportsAuthorizationCodeInput: cliAuthMethod.supportsAuthorizationCodeInput ?? false,
       onSuccess: () => {
         if (store.loadError?.kind === 'auth_required') store.retry();
       },

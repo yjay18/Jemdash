@@ -5,30 +5,30 @@ sits on top of the existing tooling — `tsdown`, `electron-vite`, `vitest`, `ox
 `oxfmt` — and adds dependency-ordered execution, input hashing, and output caching
 without requiring any structural changes to packages.
 
-No `project.json` files exist. Nx infers all five projects from `package.json`
+No `project.json` files exist. Nx infers all nine projects from `package.json`
 `workspace:*` dependencies and runs each project's existing `package.json` scripts
 as Nx targets.
-
-The Nx MCP server is enabled for this workspace. In Cursor, agents can query the
-project graph, list targets, and run tasks through the MCP server directly without
-shelling out.
 
 ## Project Graph
 
 Nx derives this graph from `workspace:*` dependency references:
 
 ```
-@emdash/shared    (leaf)
-@emdash/core      -> shared
-@emdash/plugins   -> core -> shared
-@emdash/ui        (leaf)
-@emdash/emdash-desktop -> shared, core, plugins, ui
+@emdash/shared             (leaf)
+@emdash/wire               -> shared
+@emdash/core               -> shared, wire
+@emdash/runtime            -> core, shared, wire
+@emdash/plugins            -> core, runtime, shared, wire
+@emdash/chat-ui            -> core, shared
+@emdash/ui                 -> chat-ui, shared
+@emdash/workspace-server   -> core, plugins, runtime, shared, wire
+@emdash/emdash-desktop     -> chat-ui, core, plugins, runtime, shared, ui, wire
 ```
 
 The `dependsOn: ["^build"]` default in `nx.json` means "build all upstream packages
 before running this target." A bare `nx build @emdash/emdash-desktop` therefore
-builds shared, core, plugins, and ui first, in dependency order, with parallelism
-where the graph allows.
+builds all of its upstream workspace dependencies first, in dependency order, with
+parallelism where the graph allows.
 
 ## Common Commands
 
@@ -43,6 +43,7 @@ pnpm run lint           # nx run-many -t lint --all
 pnpm run typecheck      # nx run-many -t typecheck --all
 pnpm run format:check   # nx run-many -t format:check --all
 pnpm run format         # nx run-many -t format --all
+pnpm run docs:check     # validate agent docs without Nx
 ```
 
 **Start the full dev setup:**
@@ -75,7 +76,7 @@ nx typecheck @emdash/emdash-desktop
 nx package:mac @emdash/emdash-desktop
 nx db:reset @emdash/emdash-desktop
 nx storybook @emdash/ui
-nx theme:build @emdash/ui
+nx build:theme @emdash/ui
 ```
 
 **Run affected with a custom base:**
@@ -112,8 +113,8 @@ Nx uses the `dependsOn` declarations in `nx.json` to determine task order:
 | `format`       | no                                | no      |
 
 Targets not listed in `targetDefaults` (e.g. `package`, `rebuild`, `db:reset`,
-`db:generate`) have no dependency ordering or caching applied and run as plain
-`pnpm exec` calls.
+`db:generate`) remain inferred package-script targets but receive no shared dependency-ordering or
+caching defaults.
 
 ## Local Caching
 
@@ -149,9 +150,10 @@ runs:
 
 ```bash
 pnpm nx affected -t format:check typecheck lint
+pnpm nx affected -t test
 ```
 
-This means only the projects touched by the PR (and their dependents) are checked.
+This means only the projects touched by the PR (and their dependents) are checked or tested.
 A PR that modifies only `packages/ui` will not re-run typecheck for the desktop app
 unless it actually depends on changed output.
 

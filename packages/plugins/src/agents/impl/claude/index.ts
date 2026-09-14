@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { definePlugin, registerPluginBehavior } from '@emdash/core/agents/plugins';
 import {
   buildStandardCommand,
@@ -11,12 +10,6 @@ import { claudeAuthStatus } from './auth';
 import { buildClaudeHookConfig } from './hooks';
 import { icon } from './icon';
 import { buildClaudeTrustBehavior } from './trust';
-
-const _require = createRequire(import.meta.url);
-
-function resolveClaudeAcpEntry(): string {
-  return _require.resolve('@agentclientprotocol/claude-agent-acp/dist/index.js');
-}
 
 export const plugin = definePlugin(
   {
@@ -42,6 +35,7 @@ export const plugin = definePlugin(
           name: 'Sign in with Claude Code',
           args: ['auth', 'login'],
           description: 'Open the Claude Code CLI sign-in flow in a terminal.',
+          supportsAuthorizationCodeInput: true,
         },
         {
           kind: 'api-key',
@@ -144,15 +138,8 @@ export const plugin = definePlugin(
 export const provider = registerPluginBehavior(plugin, {
   acp: {
     buildSpawn: (ctx) => ({
-      // Run the adapter as plain Node inside the Electron binary.
-      command: process.execPath,
-      args: [resolveClaudeAcpEntry()],
-      env: {
-        ELECTRON_RUN_AS_NODE: '1',
-        // Point the adapter's Claude Agent SDK at the host-installed claude
-        // binary instead of the SDK's auto-downloaded native binary.
-        CLAUDE_CODE_EXECUTABLE: ctx.cli,
-      },
+      command: ctx.cli,
+      args: ['--acp'],
     }),
     connect: (io, toClient) => {
       return connectStdioAcp(io, toClient);

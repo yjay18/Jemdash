@@ -28,7 +28,7 @@ export const DefaultAgentSelector: React.FC = () => {
       <div className="flex flex-col gap-1">
         <span className="text-sm text-foreground">Default agent</span>
         <span className="text-xs text-foreground-muted">
-          Selected by default when creating a new task.
+          Selected by default when starting a new chat.
         </span>
       </div>
       <div className="w-44 shrink-0">

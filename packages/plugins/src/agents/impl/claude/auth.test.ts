@@ -28,6 +28,15 @@ describe('claudeAuthStatus', () => {
     expect(exec).not.toHaveBeenCalled();
   });
 
+  it('reports authenticated from ANTHROPIC_AUTH_TOKEN without probing the CLI', async () => {
+    const exec = vi.fn();
+
+    await expect(
+      claudeAuthStatus(ctx({ env: { ANTHROPIC_AUTH_TOKEN: 'test-token' }, exec }))
+    ).resolves.toEqual({ kind: 'authenticated' });
+    expect(exec).not.toHaveBeenCalled();
+  });
+
   it('reports authenticated and extracts the email from claude auth status JSON', async () => {
     const exec = vi.fn().mockResolvedValue({
       stdout: JSON.stringify({
@@ -54,6 +63,40 @@ describe('claudeAuthStatus', () => {
     });
 
     await expect(claudeAuthStatus(ctx({ exec }))).resolves.toEqual({ kind: 'unauthenticated' });
+  });
+
+  it('reports unauthenticated when status JSON says logged out with exit code 0', async () => {
+    const exec = vi.fn().mockResolvedValue({
+      stdout: JSON.stringify({ loggedIn: false }),
+      stderr: '',
+    });
+
+    await expect(claudeAuthStatus(ctx({ exec }))).resolves.toEqual({ kind: 'unauthenticated' });
+  });
+
+  it('recognizes logged-out status JSON written to stderr', async () => {
+    const exec = vi.fn().mockRejectedValue({
+      stdout: '',
+      stderr: JSON.stringify({ loggedIn: false }),
+    });
+
+    await expect(claudeAuthStatus(ctx({ exec }))).resolves.toEqual({ kind: 'unauthenticated' });
+  });
+
+  it('recognizes logged-out text from an exitCode-shaped execution error', async () => {
+    const exec = vi.fn().mockRejectedValue({
+      exitCode: 1,
+      stdout: '',
+      stderr: 'Not logged in',
+    });
+
+    await expect(claudeAuthStatus(ctx({ exec }))).resolves.toEqual({ kind: 'unauthenticated' });
+  });
+
+  it('does not report authenticated for an unexpected successful response', async () => {
+    const exec = vi.fn().mockResolvedValue({ stdout: 'unknown output', stderr: '' });
+
+    await expect(claudeAuthStatus(ctx({ exec }))).resolves.toEqual({ kind: 'unknown' });
   });
 
   it('reports unknown when an older CLI does not recognize the auth status command', async () => {

@@ -30,9 +30,14 @@ pnpm run format
 pnpm run lint
 pnpm run typecheck
 pnpm run test
+pnpm run docs:check
 ```
 
 ## Important Notes
 
+- Read root `ROADMAP.md` before feature work and update its checklist when the feature's full
+  acceptance criteria pass.
 - After native dependency changes (`better-sqlite3`, `node-pty`), run `pnpm run rebuild`.
 - There are no pre-commit hooks; run the validation commands before opening or merging a PR.
+- Use the repository skill `$emdash-validate-change` to choose focused checks before the broader
+  gate.

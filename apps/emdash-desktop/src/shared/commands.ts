@@ -49,8 +49,8 @@ export const APP_COMMAND_DEFS = defineCommandDefs([
   },
   {
     id: 'app.newTask',
-    label: 'New Task',
-    description: 'Create a new task in this project',
+    label: 'New Chat',
+    description: 'Start a new chat in this project',
     scope: 'app',
     shortcutKey: 'newTask',
     group: 'App',

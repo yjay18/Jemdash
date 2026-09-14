@@ -4,7 +4,7 @@
 
 - `src/main/core/ssh/` — connection management, credentials, config parsing
 - `src/main/core/pty/ssh2-pty.ts`
-- `src/main/core/fs/impl/ssh-fs.ts`
+- `src/main/core/runtime/legacy/ssh-file-system.ts`
 - `src/main/core/terminals/impl/ssh-terminal-provider.ts`
 - `src/main/utils/shellEscape.ts`
 

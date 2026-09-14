@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate Emdash Change"
+  short_description: "Validate changes and maintain the product roadmap"
+  default_prompt: "Use $emdash-validate-change to validate my current Emdash changes and update the roadmap if a feature is complete."

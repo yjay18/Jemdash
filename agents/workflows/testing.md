@@ -11,6 +11,7 @@ pnpm run format
 pnpm run lint
 pnpm run typecheck
 pnpm run test
+pnpm run docs:check
 ```
 
 ## Test Layout
@@ -22,22 +23,23 @@ pnpm run test
 ## Current Setup
 
 - Vitest config is in `vitest.config.ts` (separate from the build config in `electron.vite.config.ts`).
-- Five test projects:
+- Six test projects:
   - `node` — `src/**/*.test.ts` excluding `_*` dirs, browser tests, migration tests, `*.db.test.ts`, and `src/main/db/legacy-port/**/*.test.ts`
   - `main-db` — `src/main/core/**/*.db.test.ts` and `src/main/db/legacy-port/**/*.test.ts` against real SQLite
   - `fixtures` — fixture generator, run via `pnpm run db:fixtures`
   - `migrations` — `src/main/db/tests/migrations/**`, run via `pnpm run test:migrations`
+  - `scripts` — release and support script tests under `scripts/**/*.test.ts`
   - `browser` — `src/renderer/tests/browser/**/*.test.{ts,tsx}` via Playwright
-- `pnpm run test` runs the `node`, `main-db`, `migrations`, and `browser` projects.
+- `pnpm run test` runs the `node`, `main-db`, `migrations`, `browser`, and `scripts` projects.
 - Tests use per-file `vi.mock()` setup.
 - Integration-style tests create temporary repos and worktrees in `os.tmpdir()`.
 
 ## CI Notes
 
 - `.github/workflows/code-consistency-check.yml` uses `nx affected` to enforce
-  format:check, typecheck, and lint only for projects touched by the PR. Nx
+  format:check, typecheck, lint, and tests only for projects touched by the PR. Nx
   computes the affected set using `nrwl/nx-set-shas` and the PR base/head SHAs.
-- Tests are still expected locally before merging even though they are not enabled in that workflow yet.
+- Agent-facing documentation and skill paths are checked separately with `pnpm run docs:check`.
 
 ## Focused Validation
 

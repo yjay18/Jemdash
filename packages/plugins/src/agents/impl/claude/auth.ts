@@ -6,23 +6,27 @@ const LOGGED_OUT_PATTERN = /not (authenticated|logged in|signed in)|login requir
 
 type ExecErrorWithOutput = {
   code?: unknown;
+  exitCode?: unknown;
   stdout?: unknown;
   stderr?: unknown;
   message?: unknown;
 };
 
 export async function claudeAuthStatus(ctx: AgentAuthContext): Promise<AgentAuthStatus> {
-  const envStatus = authenticatedFromEnv(ctx, ['ANTHROPIC_API_KEY']);
+  const envStatus = authenticatedFromEnv(ctx, ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']);
   if (envStatus.kind === 'authenticated') return envStatus;
 
   try {
     const { stdout } = await ctx.exec(ctx.cli, ['auth', 'status'], {
       timeout: AUTH_STATUS_TIMEOUT_MS,
     });
-    return { kind: 'authenticated', account: accountFromAuthStatus(stdout) };
+    const status = parseAuthStatus(stdout);
+    if (status?.loggedIn === false) return { kind: 'unauthenticated' };
+    if (status?.loggedIn !== true) return { kind: 'unknown' };
+    return { kind: 'authenticated', account: accountFromAuthStatus(status) };
   } catch (error) {
     const output = outputFromExecError(error);
-    if (isExitCode(error, 1) && isAuthStatusResponse(output)) {
+    if (isLoggedOutResponse(error, output)) {
       return { kind: 'unauthenticated' };
     }
     return { kind: 'unknown' };
@@ -30,18 +34,18 @@ export async function claudeAuthStatus(ctx: AgentAuthContext): Promise<AgentAuth
 }
 
 function isExitCode(error: unknown, code: number): boolean {
-  return (
-    typeof error === 'object' && error !== null && (error as ExecErrorWithOutput).code === code
-  );
+  if (typeof error !== 'object' || error === null) return false;
+  const withOutput = error as ExecErrorWithOutput;
+  return withOutput.code === code || withOutput.exitCode === code;
 }
 
-function isAuthStatusResponse(output: ExecErrorOutput): boolean {
-  if (parseAuthStatus(output.stdout)) return true;
-  return LOGGED_OUT_PATTERN.test(output.combined);
+function isLoggedOutResponse(error: unknown, output: ExecErrorOutput): boolean {
+  const parsed = parseAuthStatus(output.stdout) ?? parseAuthStatus(output.stderr);
+  if (parsed?.loggedIn === false) return true;
+  return isExitCode(error, 1) && LOGGED_OUT_PATTERN.test(output.combined);
 }
 
-function accountFromAuthStatus(output: string): string | undefined {
-  const status = parseAuthStatus(output);
+function accountFromAuthStatus(status: Record<string, unknown>): string | undefined {
   const oauthAccount = objectValue(status?.oauthAccount);
   return firstString(
     status?.email,
@@ -75,18 +79,20 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 
 type ExecErrorOutput = {
   stdout: string;
+  stderr: string;
   combined: string;
 };
 
 function outputFromExecError(error: unknown): ExecErrorOutput {
   if (typeof error !== 'object' || error === null) {
     const message = String(error);
-    return { stdout: '', combined: message };
+    return { stdout: '', stderr: '', combined: message };
   }
   const withOutput = error as ExecErrorWithOutput;
   const stdout = typeof withOutput.stdout === 'string' ? withOutput.stdout : '';
+  const stderr = typeof withOutput.stderr === 'string' ? withOutput.stderr : '';
   const combined = [withOutput.stdout, withOutput.stderr, withOutput.message]
     .filter((value): value is string => typeof value === 'string')
     .join('\n');
-  return { stdout, combined };
+  return { stdout, stderr, combined };
 }

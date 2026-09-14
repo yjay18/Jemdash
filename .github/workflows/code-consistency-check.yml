@@ -47,3 +47,49 @@ jobs:
 
       - name: Run affected checks
         run: pnpm nx affected -t format:check typecheck lint
+
+      - name: Validate agent documentation
+        run: pnpm run docs:check
+
+  affected-tests:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive Nx SHAs for affected
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: |
+          for attempt in 1 2 3; do
+            pnpm install --frozen-lockfile && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "pnpm install failed after 3 attempts"
+              exit 1
+            fi
+            echo "Install failed (attempt $attempt). Retrying in 10s..."
+            sleep 10
+          done
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run affected tests
+        run: pnpm nx affected -t test

@@ -1,3 +1,4 @@
+import type { TranscriptTurn } from '@emdash/core/acp/client';
 import type { AgentProviderId } from '@emdash/plugins/agents';
 import type { AgentStatus } from '@shared/core/agents/agentEvents';
 
@@ -8,6 +9,14 @@ export type ConversationType = 'pty' | 'acp';
 export type InitialQueuePrompt = {
   text: string;
   hiddenContext?: string;
+};
+
+export type ConversationHandoff = {
+  fromProviderId: AgentProviderId;
+  transcript: TranscriptTurn[];
+  context: string;
+  preferredEffort?: string;
+  draftText?: string;
 };
 
 export type Conversation = {
@@ -31,6 +40,8 @@ export type Conversation = {
   model?: string;
   /** Initial queued prompts to deliver on first ACP spawn. Only present before sessionId is set. */
   initialQueue?: InitialQueuePrompt[];
+  /** Previous provider transcript and deferred context for a cross-provider handoff. */
+  handoff?: ConversationHandoff;
   isInitialConversation: boolean | null;
   agentStatus?: AgentStatus | null;
   agentStatusSeen?: boolean;
@@ -56,6 +67,8 @@ export type CreateConversationParams = {
   initialSize?: { cols: number; rows: number };
   initialPrompt?: string;
   initialQueue?: InitialQueuePrompt[];
+  /** Previous provider transcript and deferred context for a cross-provider handoff. */
+  handoff?: ConversationHandoff;
   /** Transport type: 'pty' (default) uses the terminal/PTY path; 'acp' uses the Agent Client Protocol. */
   type?: ConversationType;
 };

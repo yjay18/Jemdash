@@ -83,6 +83,36 @@ describe('conversation-config v1 schema', () => {
     }
   });
 
+  it('round-trips an ACP provider handoff', () => {
+    const config = conversationConfig.safeParse({
+      version: '1',
+      type: 'acp',
+      handoff: {
+        fromProviderId: 'claude',
+        transcript: [
+          {
+            id: 'claude:turn:1',
+            seq: 0,
+            initiator: 'user',
+            items: [
+              { kind: 'message', id: 'claude:message:1', seq: 0, role: 'user', text: 'Fix it' },
+            ],
+            outcome: { kind: 'done' },
+          },
+        ],
+        context: 'Continue the same task.',
+        preferredEffort: 'high',
+        draftText: 'Now run the tests',
+      },
+    });
+
+    expect(config.status).toBe('ok');
+    if (config.status === 'ok') {
+      const json = conversationConfig.serialize(config.data);
+      expect(conversationConfig.parseJson(json)).toEqual(config.data);
+    }
+  });
+
   it('returns invalid for non-object input', () => {
     expect(conversationConfig.safeParse('not-json')).toMatchObject({ status: 'invalid' });
     expect(conversationConfig.safeParse(null)).toMatchObject({ status: 'invalid' });

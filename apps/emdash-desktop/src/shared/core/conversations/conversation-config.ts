@@ -1,3 +1,4 @@
+import { transcriptTurnSchema } from '@emdash/core/acp/client';
 import z from 'zod';
 import { defineVersionedSchema } from '@shared/lib/versioned-schema/versioned-schema';
 
@@ -13,6 +14,19 @@ const conversationConfigV0Schema = z.object({
 const initialQueuePromptSchema = z.object({
   text: z.string(),
   hiddenContext: z.string().optional(),
+});
+
+const conversationHandoffSchema = z.object({
+  /** Provider whose native session produced the transcript prefix. */
+  fromProviderId: z.string(),
+  /** Normalized turns rendered before the new provider's own session history. */
+  transcript: z.array(transcriptTurnSchema),
+  /** Context added once to the first prompt sent to the new provider. */
+  context: z.string(),
+  /** Best-effort effort selection to apply after the target ACP session starts. */
+  preferredEffort: z.string().optional(),
+  /** Composer draft carried across the provider boundary. */
+  draftText: z.string().optional(),
 });
 
 const ptyConfigV1 = z.object({
@@ -35,6 +49,8 @@ const acpConfigV1 = z.object({
   initialQueue: z.array(initialQueuePromptSchema).optional(),
   /** Model to pass to the agent CLI. Empty string or absent = CLI default. */
   model: z.string().optional(),
+  /** Optional context and visible history carried from another provider session. */
+  handoff: conversationHandoffSchema.optional(),
 });
 
 export const conversationConfig = defineVersionedSchema()

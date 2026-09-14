@@ -6,20 +6,24 @@
   - `src/shared/core/agents/agent-payload.ts`
   - provider metadata and capabilities are sourced from `packages/plugins/src/agents/registry.ts`
 - IPC primitives:
-  - `src/shared/ipc/rpc.ts` — typed RPC router, controller, and client
-  - `src/shared/ipc/events.ts` — typed event emitter
+  - `src/shared/lib/ipc/rpc.ts` — typed RPC router, controller, and client
+  - `src/shared/lib/ipc/events.ts` — typed event emitter
 - Typed event definitions:
-  - `src/shared/events/` — `agentEvents.ts`, `appEvents.ts`, `editorEvents.ts`, `fsEvents.ts`, `githubEvents.ts`, `hostPreviewEvents.ts`, `lifecycleEvents.ts`, `ptyEvents.ts`, `sshEvents.ts`
+  - `src/shared/events/` — cross-cutting app, browser, GitHub, resource, and update events
+  - `src/shared/core/` — domain-local agent, automation, conversation, filesystem, Git, preview,
+    project, PTY, pull-request, SSH, task, and terminal events
 - MCP types:
-  - `src/shared/mcp/`
+  - `src/shared/core/mcp/`
 - Skills types and validation:
-  - `src/shared/skills/`
-- Domain type modules (flat files):
-  - `conversations.ts`, `fs.ts`, `git.ts`, `github.ts`, `hostPreview.ts`, `lifecycle.ts`, `projects.ts`, `pull-requests.ts`, `ssh.ts`, `tasks.ts`, `terminals.ts`, `urls.ts`, `utils.ts`
+  - `src/shared/core/skills/`
+- Domain type modules:
+  - `src/shared/core/` groups domain types by feature; cross-cutting compatibility types remain at
+    the `src/shared/` root
 - PTY helpers:
-  - `ptySessionId.ts` (provider-aware PTY ID parsing lives in main under `src/main/core/pty/`)
+  - `src/shared/core/pty/ptySessionId.ts` (provider-aware PTY ID parsing lives in main under
+    `src/main/core/pty/`)
 - App settings types:
-  - `app-settings.ts`
+  - `src/shared/core/app-settings.ts`
 
 ## Path Aliases
 

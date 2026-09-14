@@ -7,7 +7,9 @@ import type {
   PromptDraft,
   PromptInput,
   QueuedPrompt,
+  TranscriptTurn,
 } from '@emdash/core/acp/client';
+import type { AgentProviderId } from '@emdash/plugins/agents';
 import type {
   CommandItem,
   ComposerEffortOption,
@@ -30,7 +32,15 @@ import { getSharedChatContext } from '@renderer/lib/chat/shared-chat-context';
 import { toast } from '@renderer/lib/hooks/use-toast';
 import { rpc } from '@renderer/lib/ipc';
 import { log } from '@renderer/utils/logger';
+import type { ConversationHandoff } from '@shared/core/conversations/conversations';
 import { conversationRegistry } from '../stores/conversation-registry';
+import {
+  buildHandoffContext,
+  mergeHandoffTranscript,
+  normalizeHandoffTranscript,
+  readProviderSelection,
+  writeProviderSelection,
+} from './acp-provider-handoff';
 import { bindSessionTerminalOutputs } from './acp-terminal-output-binding';
 
 export interface AgentAffordances {
@@ -74,6 +84,8 @@ export class AcpChatStore {
   private _draftRev = 0;
   private _pendingDraftRev: number | null = null;
   private _draftTimer: number | null = null;
+  private _handoffContextPending = false;
+  private _handoffTranscript: TranscriptTurn[] = [];
 
   constructor(
     readonly conversationId: string,
@@ -274,6 +286,7 @@ export class AcpChatStore {
     hiddenContext?: string
   ): void {
     const promptAttachments = attachments.map((attachment) => attachment.ref);
+    const promptHiddenContext = this._withHandoffContext(hiddenContext);
     if (!this.affordances.isWorking) {
       const optimisticId = `optimistic:user:${Date.now()}`;
       this.chatState.session.setPendingPrompt({
@@ -290,25 +303,34 @@ export class AcpChatStore {
     void this.session
       ?.sendPrompt({
         text,
-        ...(hiddenContext ? { hiddenContext } : {}),
+        ...(promptHiddenContext ? { hiddenContext: promptHiddenContext } : {}),
         ...(promptAttachments.length > 0 ? { attachments: promptAttachments } : {}),
       })
       .then((result) => {
-        if (!result.success) this._toastError('Failed to send message', result.error);
+        if (!result.success) {
+          this._toastError('Failed to send message', result.error);
+          return;
+        }
+        this._handoffContextPending = false;
       })
       .catch((error: unknown) => this._toastError('Failed to send message', error));
   }
 
   queuePrompt(text: string, attachments: AcpPromptAttachment[] = [], hiddenContext?: string): void {
     const promptAttachments = attachments.map((attachment) => attachment.ref);
+    const promptHiddenContext = this._withHandoffContext(hiddenContext);
     void this.session
       ?.queuePrompt({
         text,
-        ...(hiddenContext ? { hiddenContext } : {}),
+        ...(promptHiddenContext ? { hiddenContext: promptHiddenContext } : {}),
         ...(promptAttachments.length > 0 ? { attachments: promptAttachments } : {}),
       })
       .then((result) => {
-        if (!result.success) this._toastError('Failed to queue message', result.error);
+        if (!result.success) {
+          this._toastError('Failed to queue message', result.error);
+          return;
+        }
+        this._handoffContextPending = false;
       })
       .catch((error: unknown) => this._toastError('Failed to queue message', error));
   }
@@ -331,6 +353,8 @@ export class AcpChatStore {
   }
 
   setModel(model: string): void {
+    const providerId = this._providerId();
+    if (providerId) writeProviderSelection(providerId, { model });
     void this.session
       ?.setModelOption('model', model)
       .then((result) => {
@@ -349,12 +373,35 @@ export class AcpChatStore {
   }
 
   setEffort(effort: string): void {
+    const providerId = this._providerId();
+    if (providerId) writeProviderSelection(providerId, { effort });
     void this.session
       ?.setModelOption('effort', effort)
       .then((result) => {
         if (!result.success) this._toastError('Failed to change effort', result.error);
       })
       .catch((error: unknown) => this._toastError('Failed to change effort', error));
+  }
+
+  prepareHandoff(targetProviderId: AgentProviderId): ConversationHandoff {
+    const fromProviderId = this._providerId();
+    if (!fromProviderId) throw new Error('Current provider was not found.');
+    writeProviderSelection(fromProviderId, {
+      model: this.model ?? undefined,
+      effort: this.effort ?? undefined,
+    });
+    const transcript = normalizeHandoffTranscript(
+      [],
+      this.chatState.transcript.state.committedTurns
+    );
+    const targetSelection = readProviderSelection(targetProviderId);
+    return {
+      fromProviderId,
+      transcript,
+      context: buildHandoffContext(fromProviderId, targetProviderId, transcript),
+      preferredEffort: targetSelection.effort ?? this.effort ?? undefined,
+      draftText: this.draftText || undefined,
+    };
   }
 
   resolvePermission(optionId: string): void {
@@ -421,7 +468,25 @@ export class AcpChatStore {
     try {
       const input = this._startInput();
       providerId = input.providerId;
+      await this._assertAuthenticated(providerId);
       const clientSession = await AcpLiveSession.create(this.conversationId, input);
+
+      const conversation = this._conversation();
+      const preferredEffort = conversation?.handoff?.preferredEffort;
+      const effortOptions = clientSession.config.current().efforts;
+      if (
+        preferredEffort &&
+        effortOptions?.available.some((option) => option.id === preferredEffort)
+      ) {
+        const effortResult = await clientSession.setModelOption('effort', preferredEffort);
+        if (!effortResult.success) {
+          log.warn('Failed to restore effort during provider handoff', {
+            conversationId: this.conversationId,
+            preferredEffort,
+            error: effortResult.error,
+          });
+        }
+      }
 
       const history = await clientSession.getHistory(undefined, 100);
       if (!history.success) throw resultError(history.error);
@@ -429,9 +494,21 @@ export class AcpChatStore {
       runInAction(() => {
         this.session?.dispose();
         this.session = clientSession;
-        this.chatState.transcript.history.seed(history.data.turns);
+        this._handoffTranscript = conversation?.handoff?.transcript ?? [];
+        this._handoffContextPending =
+          conversation?.handoff !== undefined && history.data.turns.length === 0;
+        this.chatState.transcript.history.seed(
+          mergeHandoffTranscript(this._handoffTranscript, history.data.turns)
+        );
         this._subscribeLiveSession(clientSession);
         this._applyDraftSnapshot(clientSession.draft.current());
+        if (
+          history.data.turns.length === 0 &&
+          !clientSession.draft.current() &&
+          conversation?.handoff?.draftText
+        ) {
+          this.draftText = conversation.handoff.draftText;
+        }
         this.historyLoading = false;
         this.loadError = null;
         this._syncMessageCount();
@@ -471,10 +548,21 @@ export class AcpChatStore {
     }
   }
 
+  private async _assertAuthenticated(providerId: string): Promise<void> {
+    const client = await getAgentConfigRuntimeClient();
+    const result = await client.refreshAuthStatus({ providerId });
+    if (!result.success || result.data.kind !== 'unauthenticated') return;
+    throw new AcpStartError({
+      type: 'auth_required',
+      cause: {
+        name: 'AuthenticationRequired',
+        message: result.data.message ?? `Sign in to ${providerId} before starting this chat.`,
+      },
+    });
+  }
+
   private _startInput() {
-    const conversation = conversationRegistry
-      .get(this.taskId)
-      ?.conversations.get(this.conversationId)?.data;
+    const conversation = this._conversation();
     if (!conversation) throw new Error('Conversation not found');
 
     const task = asProvisioned(getTaskStore(this.projectId, this.taskId));
@@ -640,9 +728,25 @@ export class AcpChatStore {
     if (!history?.success) return;
     runInAction(() => {
       this.chatState.session.setPendingPrompt(null);
-      this.chatState.transcript.history.seed(history.data.turns);
+      this.chatState.transcript.history.seed(
+        mergeHandoffTranscript(this._handoffTranscript, history.data.turns)
+      );
       this._syncMessageCount();
     });
+  }
+
+  private _conversation() {
+    return conversationRegistry.get(this.taskId)?.conversations.get(this.conversationId)?.data;
+  }
+
+  private _providerId(): AgentProviderId | undefined {
+    return this._conversation()?.providerId;
+  }
+
+  private _withHandoffContext(hiddenContext?: string): string | undefined {
+    const handoffContext = this._conversation()?.handoff?.context;
+    if (!this._handoffContextPending || !handoffContext) return hiddenContext;
+    return hiddenContext ? `${handoffContext}\n\n${hiddenContext}` : handoffContext;
   }
 
   private _syncMessageCount(): void {

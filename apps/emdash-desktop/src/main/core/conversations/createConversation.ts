@@ -62,6 +62,7 @@ export async function createConversation(
           ...(params.autoApprove !== undefined && { autoApprove: params.autoApprove }),
           ...(params.model && { model: params.model }),
           ...(initialQueue?.length && { initialQueue }),
+          ...(params.handoff && { handoff: params.handoff }),
         }
       : {
           version: '1',

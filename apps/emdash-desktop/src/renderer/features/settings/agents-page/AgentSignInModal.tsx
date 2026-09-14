@@ -22,12 +22,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/lib/ui/dialog';
+import { Input } from '@renderer/lib/ui/input';
 import { TERMINAL_FONT_SIZE_DEFAULT } from '@shared/core/terminals/terminal-settings';
+import { authorizationCodeInputForTerminal } from './authorization-code';
 
 export type AgentSignInModalArgs = {
   providerId: string;
   methodId: string;
   providerName: string;
+  supportsAuthorizationCodeInput?: boolean;
 };
 
 type AgentSignInModalProps = BaseModalProps<void> & AgentSignInModalArgs;
@@ -36,14 +39,25 @@ export function AgentSignInModal({
   providerId,
   methodId,
   providerName,
+  supportsAuthorizationCodeInput = false,
   onSuccess,
   onClose,
 }: AgentSignInModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [waitingForCode, setWaitingForCode] = useState(false);
+  const [codeValue, setCodeValue] = useState('');
   const terminalHostRef = useRef<HTMLDivElement | null>(null);
   const bindingRef = useRef<AcpAuthLoginBinding | null>(null);
   const handledUrlsRef = useRef(new Set<string>());
+
+  const submitAuthorizationCode = () => {
+    const input = authorizationCodeInputForTerminal(codeValue);
+    if (!input) return;
+
+    bindingRef.current?.sendInput(input);
+    setCodeValue('');
+  };
 
   useEffect(() => {
     const host = terminalHostRef.current;
@@ -114,10 +128,11 @@ export function AgentSignInModal({
         handledUrlsRef.current.add(pendingUrl.id);
         confirmOpenExternalLink(pendingUrl.url);
         binding.markUrlHandled(pendingUrl.id);
+        if (supportsAuthorizationCodeInput) setWaitingForCode(true);
       },
       { fireImmediately: true }
     );
-  }, [onSuccess, ready]);
+  }, [onSuccess, ready, supportsAuthorizationCodeInput]);
 
   return (
     <>
@@ -139,6 +154,31 @@ export function AgentSignInModal({
           {error && (
             <div className="text-destructive absolute inset-0 bg-background p-4 text-sm">
               {error}
+            </div>
+          )}
+          {waitingForCode && !error && (
+            <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-sm">
+              <div className="text-sm">
+                <p className="font-medium text-foreground">Sign in with your browser</p>
+                <p className="mt-1 text-foreground-muted">
+                  If the browser cannot return to the CLI after authorization, paste the code or the
+                  entire callback URL below.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  className="flex-1"
+                  placeholder="Paste URL or code here..."
+                  value={codeValue}
+                  onChange={(e) => setCodeValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitAuthorizationCode();
+                  }}
+                />
+                <Button size="sm" disabled={!codeValue.trim()} onClick={submitAuthorizationCode}>
+                  Submit
+                </Button>
+              </div>
             </div>
           )}
         </div>

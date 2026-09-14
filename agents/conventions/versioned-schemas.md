@@ -222,13 +222,13 @@ For Drizzle column helpers, use the exported `parseVersionedColumn` and
 
 | Column | Schema file | Versioning |
 |--------|-------------|------------|
-| `workspaces.config` | `src/shared/workspace-config.ts` | v1 → v2 (versioned from start) |
-| `conversations.config` | `src/shared/conversation-config.ts` | unversioned (v0) |
-| `tasks.workspace_intent` | `src/shared/workspace-config.ts` | v1 → v2 |
-| `automations.trigger_config` | `src/shared/automations/config.ts` | unversioned (v0) |
-| `automations.conversation_config` | `src/shared/automations/config.ts` | unversioned (v0) |
-| `automations.task_config` | `src/shared/automations/config.ts` | v1 (versioned from start) |
-| `ssh_connections.metadata` | `src/shared/ssh-connection-metadata.ts` | unversioned (v0) |
-| `tasks.linked_issue` | `src/shared/linked-issue.ts` | unversioned (v0) |
-| `workspaces.data` | `src/shared/workspace-provider-data.ts` | unversioned (v0) |
-| `tasks.task_config` | `src/shared/task-config.ts` | v1 (versioned from start) |
+| `workspaces.config` | `src/shared/core/workspaces/workspace-config.ts` | v1 → v2 (versioned from start) |
+| `conversations.config` | `src/shared/core/conversations/conversation-config.ts` | unversioned (v0) |
+| `tasks.workspace_intent` | `src/shared/core/workspaces/workspace-config.ts` | v1 → v2 |
+| `automations.trigger_config` | `src/shared/core/automations/config.ts` | unversioned (v0) |
+| `automations.conversation_config` | `src/shared/core/automations/config.ts` | unversioned (v0) |
+| `automations.task_config` | `src/shared/core/automations/config.ts` | v1 (versioned from start) |
+| `ssh_connections.metadata` | `src/shared/core/ssh/ssh-connection-metadata.ts` | unversioned (v0) |
+| `tasks.linked_issue` | `src/shared/core/linked-issue.ts` | unversioned (v0) |
+| `workspaces.data` | `src/shared/core/workspaces/workspace-provider-data.ts` | unversioned (v0) |
+| `tasks.task_config` | `src/shared/core/tasks/task-config.ts` | v1 (versioned from start) |

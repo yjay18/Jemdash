@@ -144,8 +144,8 @@ export const APP_SHORTCUTS = defineShortcuts({
   },
   newTask: {
     defaultHotkey: 'Mod+N',
-    label: 'New Task',
-    description: 'Create a new task',
+    label: 'New Chat',
+    description: 'Start a new chat',
     category: 'Navigation',
   },
   deleteSelectedTasks: {

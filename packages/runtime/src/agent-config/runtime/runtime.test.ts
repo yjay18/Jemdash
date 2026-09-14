@@ -212,6 +212,32 @@ describe('AgentConfigRuntime', () => {
     await runtime.dispose();
   });
 
+  it('extracts a valid URL from an OSC 8 login hyperlink', async () => {
+    const ptySpawner = new FakePtySpawner();
+    const { runtime } = makeRuntime({ ptySpawner });
+    await runtime.startLogin('claude', 'login');
+
+    const url = 'https://claude.com/cai/oauth/authorize?code=true&state=test';
+    ptySpawner.processes[0]?.emitData(`Open \u001b]8;;${url}\u0007${url}\u001b]8;;\u0007\r\n`);
+
+    expect(runtime.install.getAuth('claude').login?.pendingUrl?.url).toBe(url);
+    await runtime.dispose();
+  });
+
+  it('waits for a complete login URL when PTY output splits it across chunks', async () => {
+    const ptySpawner = new FakePtySpawner();
+    const { runtime } = makeRuntime({ ptySpawner });
+    await runtime.startLogin('claude', 'login');
+
+    const url = 'https://claude.com/cai/oauth/authorize?code=true&state=test';
+    ptySpawner.processes[0]?.emitData('Open \u001b]8;;https://claude.com/cai/oauth/author');
+    expect(runtime.install.getAuth('claude').login?.pendingUrl).toBeNull();
+
+    ptySpawner.processes[0]?.emitData('ize?code=true&state=test\u0007Sign in\u001b]8;;\u0007\r\n');
+    expect(runtime.install.getAuth('claude').login?.pendingUrl?.url).toBe(url);
+    await runtime.dispose();
+  });
+
   it('cancels login by releasing the managed PTY', async () => {
     const ptySpawner = new FakePtySpawner();
     const { runtime } = makeRuntime({ ptySpawner });

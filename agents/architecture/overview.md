@@ -7,7 +7,8 @@ All paths are relative to `apps/emdash-desktop/`.
 - `src/main/`: Electron main process — app lifecycle, RPC controllers, domain services, database, PTY orchestration, updater, SSH
 - `src/preload/`: Electron preload bridge — exposes typed `invoke`, `eventSend`, `eventOn` to renderer
 - `src/renderer/`: React UI — app shell (`app/`), feature areas (`features/`), shared infrastructure (`lib/`), typed RPC client
-- `src/shared/`: Provider registry, IPC primitives (RPC + events), MCP types, skills types, shared domain types
+- `src/shared/`: App-facing DTOs, IPC primitives (RPC + events), MCP and skills types, and shared
+  domain types
 
 ## Boot Sequence
 
@@ -21,7 +22,8 @@ All paths are relative to `apps/emdash-desktop/`.
 ## Build Tooling
 
 - `electron.vite.config.ts` — electron-vite config for main, preload, and renderer builds.
-- `vitest.config.ts` — Vitest config with five test projects: `node`, `main-db`, `fixtures`, `migrations`, and `browser` (Playwright-backed renderer tests).
+- `vitest.config.ts` — Vitest config with six projects: `node`, `main-db`, `fixtures`,
+  `migrations`, `scripts`, and `browser` (Playwright-backed renderer tests).
 - Single `tsconfig.json` (in `apps/emdash-desktop/`) for all app targets.
 
 ## Read Next

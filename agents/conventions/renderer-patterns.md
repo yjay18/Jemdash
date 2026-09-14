@@ -36,8 +36,7 @@ Views use a registry + parameterized navigation pattern.
 - `src/renderer/app/view-registry.ts` — view definitions (required `MainPanel`, optional
   `WrapView` and `TitlebarSlot`) plus navigation guards (`setupNavigationGuards`)
 - `src/renderer/lib/layout/` — `provider.tsx`, `navigation-provider.tsx` (navigation and
-  param persistence), `layout-provider.tsx` (panel collapse/expand/drag state),
-  `panel-drag-store.ts`
+  param persistence), and `layout-provider.tsx` (panel collapse/expand/drag state)
 
 **Key behaviors:**
 - `navigate(viewId, params?)` (from `useNavigate`) is type-safe; params are optional when all fields are optional
@@ -62,7 +61,6 @@ Views use a registry + parameterized navigation pattern.
 - Historical output comes from the main-process ring buffer; do not add renderer-side buffering
 - `sessionId` format: `makePtySessionId(projectId, scopeId, leafId)` from
   `src/shared/core/pty/ptySessionId.ts` — deterministic
-- Panel drag pauses resizing to avoid jank (`src/renderer/lib/layout/panel-drag-store.ts`)
 
 ## React Query Context Pattern
 

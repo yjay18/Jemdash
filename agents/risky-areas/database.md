@@ -132,16 +132,16 @@ guidance.
 
 | Column | Schema file |
 |--------|-------------|
-| `workspaces.config` | `src/shared/workspace-config.ts` |
-| `workspaces.data` | `src/shared/workspace-provider-data.ts` |
-| `conversations.config` | `src/shared/conversation-config.ts` |
-| `tasks.workspace_intent` | `src/shared/workspace-config.ts` |
-| `tasks.task_config` | `src/shared/task-config.ts` |
-| `tasks.linked_issue` | `src/shared/linked-issue.ts` |
-| `automations.trigger_config` | `src/shared/automations/config.ts` |
-| `automations.conversation_config` | `src/shared/automations/config.ts` |
-| `automations.task_config` | `src/shared/automations/config.ts` |
-| `ssh_connections.metadata` | `src/shared/ssh-connection-metadata.ts` |
+| `workspaces.config` | `src/shared/core/workspaces/workspace-config.ts` |
+| `workspaces.data` | `src/shared/core/workspaces/workspace-provider-data.ts` |
+| `conversations.config` | `src/shared/core/conversations/conversation-config.ts` |
+| `tasks.workspace_intent` | `src/shared/core/workspaces/workspace-config.ts` |
+| `tasks.task_config` | `src/shared/core/tasks/task-config.ts` |
+| `tasks.linked_issue` | `src/shared/core/linked-issue.ts` |
+| `automations.trigger_config` | `src/shared/core/automations/config.ts` |
+| `automations.conversation_config` | `src/shared/core/automations/config.ts` |
+| `automations.task_config` | `src/shared/core/automations/config.ts` |
+| `ssh_connections.metadata` | `src/shared/core/ssh/ssh-connection-metadata.ts` |
 
 ### Snapshot columns and raw SQL
 

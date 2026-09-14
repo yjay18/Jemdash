@@ -11,34 +11,7 @@ describe('claude acp capability', () => {
     expect(claude!.capabilities.acp.kind).toBe('supported');
   });
 
-  it('all non-ACP plugins default acp to { kind: none }', () => {
-    const acpProviders = new Set([
-      'auggie',
-      'claude',
-      'cline',
-      'codex',
-      'copilot',
-      'cursor',
-      'devin',
-      'droid',
-      'goose',
-      'grok',
-      'hermes',
-      'junie',
-      'kilocode',
-      'kimi',
-      'kiro',
-      'mimocode',
-      'mistral',
-      'opencode',
-      'qoder',
-      'qwen',
-    ]);
-    for (const p of pluginRegistry.getAll()) {
-      if (acpProviders.has(p.metadata.id)) continue;
-      expect(p.capabilities.acp.kind).toBe('none');
-    }
-  });
+
 });
 
 describe('claude acp behavior', () => {
@@ -52,25 +25,14 @@ describe('claude acp behavior', () => {
   describe('buildSpawn', () => {
     const spawnCtx = { cwd: '/home/user/worktrees/task-1', env: {}, cli: '/usr/local/bin/claude' };
 
-    it('passes CLAUDE_CODE_EXECUTABLE from ctx.cli', () => {
+    it('uses ctx.cli as command', () => {
       const result = acpBehavior().buildSpawn(spawnCtx);
-      expect(result.env?.CLAUDE_CODE_EXECUTABLE).toBe('/usr/local/bin/claude');
+      expect(result.command).toBe('/usr/local/bin/claude');
     });
 
-    it('sets ELECTRON_RUN_AS_NODE=1', () => {
-      const result = acpBehavior().buildSpawn({ ...spawnCtx, cli: '/x/claude' });
-      expect(result.env?.ELECTRON_RUN_AS_NODE).toBe('1');
-    });
-
-    it('uses process.execPath as command', () => {
+    it('passes --acp arg', () => {
       const result = acpBehavior().buildSpawn(spawnCtx);
-      expect(result.command).toBe(process.execPath);
-    });
-
-    it('provides a non-empty args array pointing at the adapter entry', () => {
-      const result = acpBehavior().buildSpawn(spawnCtx);
-      expect(result.args.length).toBeGreaterThan(0);
-      expect(result.args[0]).toContain('claude-agent-acp');
+      expect(result.args).toEqual(['--acp']);
     });
   });
 

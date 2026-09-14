@@ -16,14 +16,19 @@ such as `src/...`, `drizzle/`, `scripts/`, and `build/` are relative to
 Repo root:
 
 - `.claude/` - Local Claude agent settings for this checkout.
+- `.agents/skills/` - Repository-scoped Codex skills shared by every workspace directory.
 - `.github/` - GitHub issue templates, reusable actions, CI, and release workflows.
 - `agents/` - Agent-facing architecture, workflow, convention, integration, and risk docs.
+- `ROADMAP.md` - Tracked app vision, ordered milestones, acceptance criteria, and completion record.
 - `apps/emdash-desktop/` - The Electron desktop app.
+- `apps/workspace-server/` - Remote workspace daemon and wire-protocol host.
 - `packages/chat-ui/` - Shared transcript and ACP chat renderer with Storybook coverage.
-- `packages/core/` - Transport-agnostic runtime primitives, including ACP session logic.
+- `packages/core/` - Transport-agnostic contracts, models, ports, and shared runtime primitives.
 - `packages/plugins/` - Agent provider plugin definitions, hooks, and ACP adapters.
+- `packages/runtime/` - Host-independent ACP and agent-configuration runtime implementations.
 - `packages/shared/` - Shared primitives such as result types, logging, and markdown helpers.
 - `packages/ui/` - Shared React UI components, theme tokens, recipes, and primitives.
+- `packages/wire/` - Typed process and transport contracts used by workspace runtimes.
 - `pnpm-workspace.yaml` - Workspace package globs for `apps/*` and `packages/**`.
 - Root config files - `package.json`, `nx.json`, `.nvmrc`, `.oxfmtrc.json`,
   `.oxlintrc.json`, and lockfile/configuration owned at the workspace root.
@@ -123,6 +128,12 @@ pnpm run format
 pnpm run lint
 pnpm run typecheck
 pnpm run test
+```
+
+Validate agent-facing documentation links and source-path references:
+
+```bash
+pnpm run docs:check
 ```
 
 Run focused database validation from `apps/emdash-desktop/`:
@@ -226,7 +237,8 @@ flowchart LR
   Services --> VCS[Git, GitHub, GitLab, PRs]
   Services --> Issues[Issue integrations]
   Services --> MCP[MCP and skills]
-  ACP --> CoreAcp[@emdash/core ACP runtime]
+  ACP --> RuntimeAcp[@emdash/runtime ACP runtime]
+  RuntimeAcp --> CoreAcp[@emdash/core ACP contracts]
   ACP --> Plugins[@emdash/plugins providers]
   Renderer --> ChatUI[@emdash/chat-ui]
   Main --> Events[Typed events]
@@ -243,7 +255,8 @@ workflows.
 Task execution has two runtime paths. Legacy/TUI conversations run through PTY
 services under `src/main/core/pty/` and `src/main/core/terminals/`. Structured chat
 conversations use ACP: provider plugins in `packages/plugins/` expose ACP behavior,
-`packages/core/src/acp/` owns protocol/session state and terminal management,
+`packages/core/src/acp/` owns protocol contracts and models,
+`packages/runtime/src/acp-agents/` owns session state and terminal management,
 `src/main/core/acp/` adapts that runtime to Electron RPC/events and local/SSH process
 hosts, and `src/renderer/features/conversations/acp/` maps updates into `@emdash/chat-ui`.
 
@@ -274,13 +287,15 @@ pnpm run test
 - App `migrations` tests validate Drizzle migrations via `pnpm run test:migrations`.
 - App `scripts` tests cover release and support scripts under `scripts/**/*.test.ts`.
 - App `browser` tests use Playwright-backed `@vitest/browser` for renderer behavior.
-- `packages/core` has ACP, dependency, plugin helper, Git, FS, and runtime unit tests.
+- `packages/core` has contract, dependency, plugin helper, Git, FS, and port-level unit tests.
+- `packages/runtime` has ACP session, process-host, state-machine, and terminal unit tests.
 - `packages/chat-ui` has node, browser, perf, and benchmark test targets.
-- `packages/ui`, `packages/shared`, and `packages/plugins` run their package-local tests.
+- `packages/ui`, `packages/shared`, `packages/wire`, `packages/plugins`, and
+  `apps/workspace-server` run their package-local tests.
 - Integration-style tests create temporary repos and worktrees in `os.tmpdir()`.
 - CI runs `.github/workflows/code-consistency-check.yml` with `nx affected` for
-  `format:check`, `typecheck`, and `lint` on touched projects and dependents.
-- Tests are still expected locally before merge even where CI coverage is narrower.
+  `format:check`, `typecheck`, `lint`, and `test` on touched projects and dependents.
+- CI also validates agent-facing Markdown links and exact source-path references.
 
 ## Security & Compliance
 
@@ -305,9 +320,9 @@ pnpm run test
 - Dependency changes must keep `pnpm-lock.yaml` in sync, preserve `packageManager` and
   `pnpm.onlyBuiltDependencies`, and avoid introducing new install scripts or native
   builds without explicit review.
-- CI installs with `pnpm install --frozen-lockfile --ignore-scripts` in
-  `.github/workflows/code-consistency-check.yml`; changes that rely on install-time
-  side effects need clear justification.
+- The static consistency CI job installs with `pnpm install --frozen-lockfile --ignore-scripts`;
+  the affected-test job performs the full frozen install needed by native and browser tests.
+  Changes that add install-time side effects still need clear justification.
 - Prefer existing dependencies and workspace packages over adding new third-party
   packages. When adding a dependency, document why the existing stack is insufficient
   and check license/security posture before committing the lockfile change.
@@ -315,9 +330,11 @@ pnpm run test
 ## Agent Guardrails
 
 - Start with this file for repo-wide context and required commands.
+- For feature work, read `ROADMAP.md` before planning and map the requested outcome to an existing
+  checklist item or add a concise user-approved item in the appropriate milestone.
 - Load only the relevant `agents/` topic page for the area you are changing.
 - Prefer updating the smallest applicable `agents/` page over expanding this file.
-- If nested `AGENTS.md` files are added later, the closest file to the edited path wins.
+- Follow nested `AGENTS.md` files; the closest file to the edited path wins.
 - Explicit user or maintainer instructions override this file.
 - Do not hand-edit numbered Drizzle migrations or `drizzle/meta/`.
 - Use `pnpm run db:generate` for new migrations, then update fixtures and migration tests.
@@ -352,9 +369,9 @@ pnpm run test
 - For provider changes, update plugin metadata, shared provider metadata, ACP support
   flags, PTY env passthrough if needed, hook integrations, renderer assumptions, and
   tests for non-standard behavior.
-- For ACP changes, preserve protocol state-machine behavior in `packages/core/src/acp/`,
-  keep provider-specific transforms in `packages/plugins/`, and adapt UI payloads at
-  app or chat-UI edges.
+- For ACP changes, keep contracts and models in `packages/core/src/acp/`, preserve runtime
+  state-machine behavior in `packages/runtime/src/acp-agents/`, keep provider-specific
+  transforms in `packages/plugins/`, and adapt UI payloads at app or chat-UI edges.
 - For MCP changes, keep canonical data in shared types and adapt provider formats at edges.
 - Follow `.github/PULL_REQUEST_TEMPLATE.md`: keep PRs small and focused, self-review
   before handoff, list checks run, attach UI evidence when applicable, and update docs
@@ -370,6 +387,10 @@ pnpm run test
 - Keep automation scoped to the task. Do not run the full local merge gate repeatedly
   when a focused check is enough during iteration; run broader checks before handoff
   when the change scope justifies it.
+- When a feature is fully complete, update `ROADMAP.md` in the same change: tick its checkbox, append
+  the completion date, and record test plus manual-acceptance evidence. Partial work stays unchecked
+  with its next gap noted. Bug fixes and refactors update the roadmap only when they complete or
+  materially change a roadmap outcome.
 
 ## Extensibility Hooks
 
@@ -411,6 +432,7 @@ pnpm run test
 
 ## Further Reading
 
+- [Product vision and roadmap](ROADMAP.md)
 - [Agent docs map](agents/README.md)
 - [Quickstart](agents/quickstart.md)
 - [Architecture overview](agents/architecture/overview.md)

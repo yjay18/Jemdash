@@ -33,8 +33,8 @@ export const AutoGenerateTaskNamesRow: React.FC = () => {
 
   return (
     <SettingRow
-      title="Auto-generate task names"
-      description="Automatically suggests a task name when creating a new task."
+      title="Auto-generate chat names"
+      description="Automatically suggests a name when starting a new chat."
       control={
         <>
           <ResetToDefaultButton

@@ -32,7 +32,7 @@ The main process is organized into domain modules under `src/main/core/`. Each d
 ## Other Main Process Areas
 
 - `src/main/app/` — Menu, protocol handler, window creation
-- `src/main/lib/` — Logger, telemetry, events, result type, updater error
+- `src/main/lib/` — Logger, telemetry, events, retries, rate limiting, and RPC logging
 - `src/main/db/` — Database schema and initialization
 - `src/main/utils/` — Shell environment, shell escaping, child process env, external links
 - `src/main/core/agent-hooks/` — Hook server, event enrichment, OS notifications, hook/plugin config writer
@@ -40,8 +40,8 @@ The main process is organized into domain modules under `src/main/core/`. Each d
 ## IPC / RPC Structure
 
 - All domain controllers are assembled into a typed RPC router in `src/main/rpc.ts`.
-- RPC primitives live in `src/shared/ipc/rpc.ts` (`createRPCRouter`, `createRPCController`, `createRPCClient`).
-- Event primitives live in `src/shared/ipc/events.ts`.
+- RPC primitives live in `src/shared/lib/ipc/rpc.ts` (`createRPCRouter`, `createRPCController`, `createRPCClient`).
+- Event primitives live in `src/shared/lib/ipc/events.ts`.
 - The preload bridge (`src/preload/index.ts`) exposes only `invoke`, `eventSend`, `eventOn`, and `getPathForFile`; there are no other manual IPC handlers.
 
 ## When Editing Here

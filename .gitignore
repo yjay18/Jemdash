@@ -70,6 +70,10 @@ Thumbs.db
 .notes
 .claude/
 
+# Local implementation handoff for Gemini (intentionally not committed)
+/PLAN.md
+**/GEMINI.md
+
 # Checkouts directory
 .checkouts/
 

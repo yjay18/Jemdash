@@ -10,6 +10,7 @@
     "format": "nx run-many -t format --all",
     "format:check": "nx run-many -t format:check --all",
     "typecheck": "nx run-many -t typecheck --all",
+    "docs:check": "node scripts/check-agent-docs.mjs",
     "affected": "nx affected -t lint typecheck test",
     "graph": "nx graph"
   },

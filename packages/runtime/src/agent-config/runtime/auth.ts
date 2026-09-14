@@ -16,7 +16,13 @@ import type { AgentConfigRuntimeDeps } from './types';
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 30;
-const URL_PATTERN = /https?:\/\/[^\s"'<>]+/i;
+const MAX_URL_DETECTION_BUFFER_LENGTH = 64 * 1024;
+// Terminal CLIs commonly wrap links in OSC 8 sequences:
+//   ESC ] 8 ; ; <url> BEL <label> ESC ] 8 ; ; BEL
+// Stop at all C0 controls so the detected URL never absorbs the BEL/ESC bytes
+// or the repeated link label. Passing those bytes to openExternal produces an
+// invalid OAuth URL (Claude Code 2.1.210 emits this exact format).
+const URL_PATTERN = /https?:\/\/[^\s"'<>\\\u0000-\u001f\u007f]+/iu;
 
 type CacheEntry = {
   status: AgentAuthStatus;
@@ -34,6 +40,10 @@ type LoginSession = {
   generation: string;
   pty: PtySession;
   seenUrls: Set<string>;
+};
+
+type UrlDetectionState = {
+  buffer: string;
 };
 
 type LoginLease = {
@@ -186,6 +196,7 @@ export class AgentAuthManager {
     }
     const startedAt = Date.now();
     const seenUrls = new Set<string>();
+    const urlDetection: UrlDetectionState = { buffer: '' };
     this.publish(providerId, (current) => ({
       ...current,
       login: {
@@ -208,7 +219,8 @@ export class AgentAuthManager {
       },
       {
         replaceExisting: false,
-        onData: (chunk) => this.detectUrl(providerId, context.generation, seenUrls, chunk),
+        onData: (chunk) =>
+          this.detectUrl(providerId, context.generation, seenUrls, urlDetection, chunk),
         onExit: (info) => {
           void this.handleLoginExit(providerId, context.generation, info);
         },
@@ -287,13 +299,19 @@ export class AgentAuthManager {
     providerId: string,
     generation: string,
     seenUrls: Set<string>,
+    state: UrlDetectionState,
     chunk: string
   ): void {
     if (!this.isCurrentLogin(providerId, generation)) return;
-    const match = URL_PATTERN.exec(chunk);
+    state.buffer = `${state.buffer}${chunk}`.slice(-MAX_URL_DETECTION_BUFFER_LENGTH);
+    const match = URL_PATTERN.exec(state.buffer);
     if (!match) return;
 
+    const matchEnd = match.index + match[0].length;
+    if (matchEnd === state.buffer.length) return;
+
     const url = stripTrailingUrlPunctuation(match[0]);
+    state.buffer = state.buffer.slice(matchEnd);
     if (seenUrls.has(url)) return;
     seenUrls.add(url);
 

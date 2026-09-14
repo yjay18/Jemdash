@@ -32,7 +32,8 @@ when a browser/Electron primitive cannot fit the RPC/event path.
 
 ## Event System
 
-Typed events use `createEventEmitter` from `src/shared/ipc/events.ts`. Event type definitions live in `src/shared/events/`.
+Typed events use `createEventEmitter` from `src/shared/lib/ipc/events.ts`. Event type definitions
+live in `src/shared/events/` and domain-specific `src/shared/core/` modules.
 
 ## Rules
 

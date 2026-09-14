@@ -67,14 +67,14 @@ src/main/core/projects/
 └── project-manager.ts           # Orchestrates providers
 ```
 
-Used in: projects, filesystem (`local-fs.ts` / `ssh-fs.ts`), terminals (`local-terminal-provider.ts` / `ssh-terminal-provider.ts`)
+Used in: projects, filesystem providers, and local/SSH terminal providers.
 
-## Result Type (`src/main/lib/result.ts`)
+## Result Type
 
 Explicit error handling via discriminated union:
 
 ```ts
-import { ok, err, type Result } from '../lib/result';
+import { err, ok, type Result } from '@emdash/shared';
 
 async function doSomething(): Promise<Result<Data, SomeError>> {
   if (problem) return err({ type: 'not_found' as const });
